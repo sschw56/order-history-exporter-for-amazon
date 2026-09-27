@@ -176,9 +176,12 @@ describe('convertOrdersToCSV', () => {
     // First item row should have savings
     expect(lines[1]).toMatch(/,10,/);
     // Second item row should have empty savings field
+    const headerParts = lines[0]!.split(',');
     const secondRowParts = lines[2]!.split(',');
-    // totalSavings is the 5th column (index 4)
-    expect(secondRowParts[4]).toBe('');
+    const totalSavingsIndex = headerParts.indexOf('csvHeaderTotalSavings');
+
+    expect(totalSavingsIndex).toBeGreaterThanOrEqual(0);
+    expect(secondRowParts[totalSavingsIndex]).toBe('');
   });
 
   it('should escape product titles with special characters', () => {
@@ -261,5 +264,49 @@ describe('convertOrdersToCSV', () => {
     // Assert this directly instead of splitting on ',', which is not CSV-safe
     // when earlier columns may contain commas inside quoted fields.
     expect(lines[2]).toMatch(/,{4}$/);
+  });
+});
+
+describe('Finance enrichment columns', () => {
+  it('exports order type, digital metadata and payment transactions', () => {
+    const order: Order = {
+      orderId: 'D01-1234567-1234567',
+      orderDate: '2026-09-20',
+      totalAmount: 9.99,
+      currency: 'EUR',
+      items: [
+        {
+          title: 'Example Movie',
+          asin: '',
+          digitalId: 'amzn1.dv.gti.example',
+          contentType: 'Prime Video',
+          quantity: 1,
+          price: 9.99,
+          discount: 0,
+          itemUrl: 'https://www.amazon.de/gp/video/detail/amzn1.dv.gti.example',
+        },
+      ],
+      orderStatus: '',
+      detailsUrl: '',
+      promotions: [],
+      totalSavings: 0,
+      recipientName: '',
+      recipientStreet: '',
+      recipientCityPostal: '',
+      recipientCountry: '',
+      orderType: 'digital',
+      transactions: [
+        { date: '2026-09-21', amount: 9.99, currency: 'EUR' },
+        { date: '2026-09-22', amount: -2.0, currency: 'EUR' },
+      ],
+    };
+
+    const csv = convertOrdersToCSV([order]);
+    expect(csv).toContain('csvHeaderOrderType');
+    expect(csv).toContain('digital');
+    expect(csv).toContain('amzn1.dv.gti.example');
+    expect(csv).toContain('Prime Video');
+    expect(csv).toContain('2026-09-21 | 2026-09-22');
+    expect(csv).toContain('9.99 | -2');
   });
 });

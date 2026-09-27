@@ -253,3 +253,21 @@ Contributions are welcome. Please submit PRs to the `main` branch.
 ## License
 
 This project is released under the [Unlicense](LICENSE), dedicating it to the public domain. You are free to use, modify, and distribute it for any purpose without restrictions.
+
+## Finance Import fork: payment transactions and digital orders
+
+This fork enriches exported orders with the actual Amazon payment transactions from
+`/cpe/yourpayments/transactions`. JSON orders may therefore contain a `transactions`
+array with transaction date, signed amount and currency. Amounts are normalized from
+the account holder's perspective: positive values are charges paid to Amazon and
+negative values are refunds.
+
+The fork also understands Amazon's **Digital Orders** tab (for example Prime Video,
+Kindle or Audible orders). When an export is started from a URL with
+`orderFilter=digital`, the filter is preserved while navigating through years/pages,
+and exported orders are tagged with `orderType: "digital"`. Digital items can include
+`digitalId` and `contentType` when Amazon exposes them in the order card.
+
+For the first implementation stage, retail and digital histories are deliberately
+kept as separate export runs. This makes it possible to validate Amazon.de's current
+markup before combining both sources into one Finance Import workflow.

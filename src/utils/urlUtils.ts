@@ -105,12 +105,18 @@ export function getOrderHistoryBaseUrl(url: string): string {
     const localePrefix = getAmazonLocalePrefix(urlObj.pathname);
     const matchedPath = getMatchedOrderPath(urlObj.pathname);
 
-    if (matchedPath) {
-      const preferredPath = matchedPath === '/your-orders' ? '/your-orders/orders' : matchedPath;
-      return `${urlObj.origin}${localePrefix}${preferredPath}`;
-    }
+    const preferredPath = matchedPath
+      ? matchedPath === '/your-orders'
+        ? '/your-orders/orders'
+        : matchedPath
+      : '/your-orders/orders';
 
-    return `${urlObj.origin}${localePrefix}/your-orders/orders`;
+    const base = new URL(`${urlObj.origin}${localePrefix}${preferredPath}`);
+    const orderFilter = urlObj.searchParams.get('orderFilter');
+    if (orderFilter) {
+      base.searchParams.set('orderFilter', orderFilter);
+    }
+    return base.toString();
   } catch {
     return '';
   }
@@ -120,6 +126,31 @@ export function getOrderHistoryBaseUrl(url: string): string {
  * Extract ASIN from a product URL
  */
 export function extractAsinFromUrl(url: string): string | null {
-  const asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$|\?)?/i);
+  const asinMatch = url.match(/\/(?:dp|product|gp\/product)\/([A-Z0-9]{10})(?:[/?#]|$)/i);
   return asinMatch?.[1]?.toUpperCase() || null;
+}
+
+/** Check whether the current order-history tab is Amazon Digital Orders. */
+export function isDigitalOrderPage(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return (
+      isAmazonDomainHost(urlObj.hostname) &&
+      getMatchedOrderPath(urlObj.pathname) !== null &&
+      urlObj.searchParams.get('orderFilter') === 'digital'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Extract a stable digital-content identifier from common Amazon URLs. */
+export function extractDigitalIdFromUrl(url: string): string | null {
+  const videoMatch = url.match(/\/gp\/video\/detail\/(amzn1\.[^?/#]+)/i);
+  if (videoMatch?.[1]) return videoMatch[1];
+
+  const audibleMatch = url.match(/\/pd\/([A-Z0-9]{10})(?:[/?#]|$)/i);
+  if (audibleMatch?.[1]) return audibleMatch[1].toUpperCase();
+
+  return null;
 }

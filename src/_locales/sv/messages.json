@@ -242,5 +242,23 @@
   "csvHeaderRecipientCountry": {
     "message": "Mottagarland",
     "description": "CSV header for the shipping recipient's country"
+  },
+  "csvHeaderOrderType": {
+    "message": "Ordertyp"
+  },
+  "csvHeaderTransactionDates": {
+    "message": "Transaktionsdatum"
+  },
+  "csvHeaderTransactionAmounts": {
+    "message": "Transaktionsbelopp"
+  },
+  "csvHeaderTransactionCurrencies": {
+    "message": "Transaktionsvalutor"
+  },
+  "csvHeaderItemDigitalId": {
+    "message": "Digitalt ID"
+  },
+  "csvHeaderItemContentType": {
+    "message": "Innehållstyp"
   }
 }

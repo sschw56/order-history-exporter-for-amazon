@@ -4,7 +4,14 @@
  */
 
 import browser from 'webextension-polyfill';
-import type { ExportOptions, ExportState, Order, OrderItem, Promotion } from '../types';
+import type {
+  ExportOptions,
+  ExportState,
+  Order,
+  OrderItem,
+  Promotion,
+  Transaction,
+} from '../types';
 import {
   parseOrderDate,
   extractOrderYear,
@@ -12,15 +19,20 @@ import {
   buildOrderPageUrl,
   getOrderHistoryBaseUrl,
   extractAsinFromUrl,
+  extractDigitalIdFromUrl,
+  isDigitalOrderPage,
   isAdvertisementOrder,
   convertOrdersToCSV,
   extractOrderId,
   extractOrderIdFromUrl,
+  isDigitalOrderIdentity,
   extractPriceFromText,
   parsePrice,
   CURRENCY_TOKEN,
   getCurrencyForDomain,
   parseOrderStatus,
+  buildTransactionUrl,
+  parseCPETransactionAmount,
 } from '../utils';
 import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
 
@@ -481,7 +493,7 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
 
     // Fallback: find elements containing order IDs
     if (orderElements.length === 0) {
-      const orderIdPattern = /\d{3}-\d{7}-\d{7}/;
+      const orderIdPattern = /(?:D\d{2}-|\d{3}-)\d{7}-\d{7}/i;
       const potentialOrders = new Set<Element>();
 
       document.querySelectorAll('*').forEach((el) => {
@@ -562,6 +574,8 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
       recipientStreet: '',
       recipientCityPostal: '',
       recipientCountry: '',
+      orderType: isDigitalOrderPage(window.location.href) ? 'digital' : 'physical',
+      transactions: [],
     };
 
     const orderText = getOrderCardText(orderEl);
@@ -593,6 +607,12 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
       }
     }
 
+    // Digital orders can also appear in the regular order-history feed.
+    // Detect them per order instead of relying only on the current page URL.
+    if (isDigitalOrderIdentity(order.orderId, order.detailsUrl)) {
+      order.orderType = 'digital';
+    }
+
     // Extract order dates from supported locales
     order.orderDate = parseOrderDate(orderText);
 
@@ -603,18 +623,20 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
       order.currency = priceResult.currency;
     }
 
-    // Extract Order Status
-    order.orderStatus = parseOrderStatus(orderText);
+    // Digital orders do not have a shipment status or shipping recipient.
+    if (order.orderType === 'digital') {
+      order.orderStatus = '';
+      order.items = parseDigitalOrderItems(orderEl);
+    } else {
+      order.orderStatus = parseOrderStatus(orderText);
+      order.items = parseOrderItems(orderEl);
 
-    // Extract Items
-    order.items = parseOrderItems(orderEl);
-
-    // Extract Recipient (name + address)
-    const recipient = parseRecipient(orderEl);
-    order.recipientName = recipient.name;
-    order.recipientStreet = recipient.street;
-    order.recipientCityPostal = recipient.cityPostal;
-    order.recipientCountry = recipient.country;
+      const recipient = parseRecipient(orderEl);
+      order.recipientName = recipient.name;
+      order.recipientStreet = recipient.street;
+      order.recipientCityPostal = recipient.cityPostal;
+      order.recipientCountry = recipient.country;
+    }
 
     // Filter out advertisement/fake orders
     // These typically have no date, no status, no details URL, and contain ads like "Amazon Visa"
@@ -836,47 +858,202 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
   }
 
   /**
-   * Fetch order details for item prices and discounts
+   * Parse products from Amazon's Digital Orders tab (Prime Video, Kindle, Audible, ...).
+   * This deliberately keeps the model close to normal order items so Finance Import
+   * can consume both kinds of orders through the same JSON structure.
+   */
+  function parseDigitalOrderItems(orderEl: Element): OrderItem[] {
+    const items: OrderItem[] = [];
+    const seenIds = new Set<string>();
+    const links = Array.from(orderEl.querySelectorAll('a[href]')) as HTMLAnchorElement[];
+
+    for (const link of links) {
+      const href = link.href || '';
+      const title = link.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const asin = extractAsinFromUrl(href) || '';
+      const digitalId = extractDigitalIdFromUrl(href) || '';
+      const uniqueId = digitalId || asin;
+
+      if (!uniqueId || seenIds.has(uniqueId)) continue;
+      if (title.length < 2) continue;
+
+      const looksDigital =
+        href.includes('/gp/video/detail/') ||
+        href.includes('/dp/') ||
+        href.includes('/gp/product/') ||
+        href.includes('/product/') ||
+        href.includes('/pd/');
+      if (!looksDigital) continue;
+
+      seenIds.add(uniqueId);
+      const contentType =
+        orderEl.querySelector('.a-size-small.a-text-bold')?.textContent?.trim() || '';
+
+      items.push({
+        title,
+        asin,
+        digitalId: digitalId || undefined,
+        quantity: 1,
+        price: 0,
+        discount: 0,
+        itemUrl: href,
+        contentType: contentType || undefined,
+      });
+    }
+
+    if (items.length === 0) {
+      const imageTitle = orderEl.querySelector('img')?.getAttribute('alt')?.trim() || '';
+      if (imageTitle) {
+        items.push({
+          title: imageTitle,
+          asin: '',
+          quantity: 1,
+          price: 0,
+          discount: 0,
+          itemUrl: '',
+          contentType:
+            orderEl.querySelector('.a-size-small.a-text-bold')?.textContent?.trim() || undefined,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  /**
+   * Fetch order details for item prices and discounts and enrich each order with
+   * the actual Amazon payment transactions from /cpe/yourpayments/transactions.
    */
   async function fetchOrderDetailsForPrices(orders: Order[]): Promise<void> {
-    // We need to fetch details for all orders to get accurate pricing and discounts
-    // Even single-item orders can have discounts
-    const ordersNeedingDetails = orders.filter((order) => order.detailsUrl);
+    console.log('[Amazon Exporter] Enriching', orders.length, 'orders');
 
-    console.log('[Amazon Exporter] Fetching details for', ordersNeedingDetails.length, 'orders');
+    for (let i = 0; i < orders.length; i++) {
+      if (stopRequested || !getExportState()) break;
 
-    for (let i = 0; i < ordersNeedingDetails.length; i++) {
-      // Check if stop was requested during price fetching
-      if (stopRequested || !getExportState()) {
-        break;
-      }
-
-      const order = ordersNeedingDetails[i];
+      const order = orders[i];
       if (!order) continue;
 
       try {
         updateProgress(
-          80 + (i / ordersNeedingDetails.length) * 10,
-          getMessage('fetchingPricesProgress', [String(i + 1), String(ordersNeedingDetails.length)])
+          80 + (i / Math.max(orders.length, 1)) * 10,
+          getMessage('fetchingPricesProgress', [String(i + 1), String(orders.length)])
         );
 
-        const response = await fetch(order.detailsUrl, {
-          credentials: 'include',
-        });
+        if (order.detailsUrl) {
+          const response = await fetch(order.detailsUrl, { credentials: 'include' });
+          if (response.ok) {
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
 
-        if (!response.ok) continue;
+            if (order.orderType === 'digital') {
+              parseDigitalOrderPricesFromDetails(order, doc);
+            } else {
+              parseItemPricesFromDetails(order, doc);
+              parsePromotionsFromDetails(order, doc);
+            }
+          }
+        }
 
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        if (order.orderId) {
+          let origin = window.location.origin;
+          if (order.detailsUrl) {
+            try {
+              origin = new URL(order.detailsUrl).origin;
+            } catch {
+              // Fall back to the current Amazon marketplace.
+            }
+          }
 
-        parseItemPricesFromDetails(order, doc);
-        parsePromotionsFromDetails(order, doc);
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          const txResponse = await fetch(buildTransactionUrl(origin, order.orderId), {
+            credentials: 'include',
+          });
 
-        await new Promise((resolve) => setTimeout(resolve, 200));
+          if (txResponse.ok) {
+            const txHtml = await txResponse.text();
+            const txDoc = new DOMParser().parseFromString(txHtml, 'text/html');
+            order.transactions = parseTransactionsFromCPEDoc(txDoc);
+          } else {
+            order.transactions = [];
+            console.warn(
+              `[Amazon Exporter] Transaction page returned ${txResponse.status} for ${order.orderId}`
+            );
+          }
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 150));
       } catch (error) {
-        console.warn('[Amazon Exporter] Error fetching details:', error);
+        console.warn('[Amazon Exporter] Error enriching order:', order.orderId, error);
       }
+    }
+  }
+
+  /**
+   * Parse Amazon CPE payment rows. We intentionally do not deduplicate solely by
+   * date + amount: two genuine partial shipments can charge the same amount on
+   * the same day and both must reach Finance Import.
+   */
+  function parseTransactionsFromCPEDoc(doc: Document): Transaction[] {
+    const transactions: Transaction[] = [];
+    const groups = doc.querySelectorAll('.a-box-group');
+
+    for (const group of groups) {
+      const dateEl = group.querySelector('.apx-transaction-date-container span');
+      const date = parseOrderDate(dateEl?.textContent?.trim() || '');
+      if (!date) continue;
+
+      const amountEls = group.querySelectorAll(
+        '.a-column.a-span3.a-text-right.a-span-last .a-size-base-plus.a-text-bold,' +
+          '.apx-transactions-line-item-component-container .a-size-base-plus.a-text-bold'
+      );
+      const seenWithinGroup = new Set<string>();
+
+      for (const amountEl of amountEls) {
+        const parsed = parseCPETransactionAmount(
+          amountEl.textContent?.trim() || '',
+          window.location.hostname
+        );
+        if (!parsed) continue;
+
+        // Amazon can render the same amount more than once inside one transaction
+        // group. Collapse only those duplicates. Identical charges in separate groups
+        // are intentionally preserved (e.g. two equal partial shipments on one day).
+        const key = `${parsed.amount}:${parsed.currency}`;
+        if (seenWithinGroup.has(key)) continue;
+        seenWithinGroup.add(key);
+        transactions.push({ date, amount: parsed.amount, currency: parsed.currency });
+      }
+    }
+
+    return transactions;
+  }
+
+  /** Parse the price of a digital item from its receipt/details page. */
+  function parseDigitalOrderPricesFromDetails(order: Order, doc: Document): void {
+    if (order.items.length === 0) return;
+
+    const selectors = [
+      '.a-price .a-offscreen',
+      '.a-color-price',
+      '[class*="grand-total"]',
+      '[class*="order-total"] .a-color-price',
+    ];
+
+    for (const selector of selectors) {
+      const element = doc.querySelector(selector);
+      const parsed = element
+        ? extractPriceFromText(element.textContent || '', window.location.hostname)
+        : null;
+      if (parsed && parsed.amount > 0) {
+        const firstItem = order.items[0];
+        if (firstItem) firstItem.price = parsed.amount;
+        return;
+      }
+    }
+
+    const firstItem = order.items[0];
+    if (firstItem && firstItem.price === 0 && order.totalAmount > 0) {
+      firstItem.price = order.totalAmount;
     }
   }
 

@@ -3,6 +3,11 @@
  */
 
 import type { Order } from '../types';
+import {
+  formatTransactionAmountsForCSV,
+  formatTransactionCurrenciesForCSV,
+  formatTransactionDatesForCSV,
+} from './transactionUtils';
 
 /**
  * Escape a value for CSV format
@@ -10,7 +15,6 @@ import type { Order } from '../types';
 export function escapeCSVValue(value: string | number | undefined): string {
   if (value === undefined || value === null) return '';
   const str = String(value);
-  // If contains comma, quote, or newline, wrap in quotes and escape internal quotes
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
@@ -29,9 +33,7 @@ export function formatPromotionsForCSV(
 }
 
 /**
- * Convert orders to CSV format
- * @param orders - Array of orders to convert
- * @param getHeader - Function to get localized header name
+ * Convert orders to CSV format.
  */
 export function convertOrdersToCSV(
   orders: Order[],
@@ -40,12 +42,18 @@ export function convertOrdersToCSV(
   const headers = [
     getHeader('csvHeaderOrderId'),
     getHeader('csvHeaderOrderDate'),
+    getHeader('csvHeaderOrderType'),
     getHeader('csvHeaderTotalAmount'),
     getHeader('csvHeaderCurrency'),
+    getHeader('csvHeaderTransactionDates'),
+    getHeader('csvHeaderTransactionAmounts'),
+    getHeader('csvHeaderTransactionCurrencies'),
     getHeader('csvHeaderTotalSavings'),
     getHeader('csvHeaderStatus'),
     getHeader('csvHeaderItemTitle'),
     getHeader('csvHeaderItemAsin'),
+    getHeader('csvHeaderItemDigitalId'),
+    getHeader('csvHeaderItemContentType'),
     getHeader('csvHeaderItemQuantity'),
     getHeader('csvHeaderItemPrice'),
     getHeader('csvHeaderItemDiscount'),
@@ -62,16 +70,29 @@ export function convertOrdersToCSV(
 
   orders.forEach((order) => {
     const promotionsStr = formatPromotionsForCSV(order.promotions, order.currency);
+    const transactionDates = formatTransactionDatesForCSV(order.transactions);
+    const transactionAmounts = formatTransactionAmountsForCSV(order.transactions);
+    const transactionCurrencies = formatTransactionCurrenciesForCSV(order.transactions);
+
+    const orderColumns = [
+      escapeCSVValue(order.orderId),
+      escapeCSVValue(order.orderDate),
+      escapeCSVValue(order.orderType || 'physical'),
+      order.totalAmount,
+      escapeCSVValue(order.currency),
+      escapeCSVValue(transactionDates),
+      escapeCSVValue(transactionAmounts),
+      escapeCSVValue(transactionCurrencies),
+    ];
 
     if (order.items.length === 0) {
       rows.push(
         [
-          escapeCSVValue(order.orderId),
-          escapeCSVValue(order.orderDate),
-          order.totalAmount,
-          escapeCSVValue(order.currency),
+          ...orderColumns,
           order.totalSavings,
           escapeCSVValue(order.orderStatus),
+          '',
+          '',
           '',
           '',
           '',
@@ -86,32 +107,32 @@ export function convertOrdersToCSV(
           escapeCSVValue(order.recipientCountry),
         ].join(',')
       );
-    } else {
-      order.items.forEach((item, index) => {
-        rows.push(
-          [
-            escapeCSVValue(order.orderId),
-            escapeCSVValue(order.orderDate),
-            order.totalAmount,
-            escapeCSVValue(order.currency),
-            index === 0 ? order.totalSavings : '',
-            escapeCSVValue(order.orderStatus),
-            escapeCSVValue(item.title),
-            escapeCSVValue(item.asin),
-            item.quantity,
-            item.price,
-            item.discount,
-            index === 0 ? escapeCSVValue(promotionsStr) : '',
-            escapeCSVValue(item.itemUrl),
-            escapeCSVValue(order.detailsUrl),
-            index === 0 ? escapeCSVValue(order.recipientName) : '',
-            index === 0 ? escapeCSVValue(order.recipientStreet) : '',
-            index === 0 ? escapeCSVValue(order.recipientCityPostal) : '',
-            index === 0 ? escapeCSVValue(order.recipientCountry) : '',
-          ].join(',')
-        );
-      });
+      return;
     }
+
+    order.items.forEach((item, index) => {
+      rows.push(
+        [
+          ...orderColumns,
+          index === 0 ? order.totalSavings : '',
+          escapeCSVValue(order.orderStatus),
+          escapeCSVValue(item.title),
+          escapeCSVValue(item.asin),
+          escapeCSVValue(item.digitalId),
+          escapeCSVValue(item.contentType),
+          item.quantity,
+          item.price,
+          item.discount,
+          index === 0 ? escapeCSVValue(promotionsStr) : '',
+          escapeCSVValue(item.itemUrl),
+          escapeCSVValue(order.detailsUrl),
+          index === 0 ? escapeCSVValue(order.recipientName) : '',
+          index === 0 ? escapeCSVValue(order.recipientStreet) : '',
+          index === 0 ? escapeCSVValue(order.recipientCityPostal) : '',
+          index === 0 ? escapeCSVValue(order.recipientCountry) : '',
+        ].join(',')
+      );
+    });
   });
 
   return rows.join('\n');

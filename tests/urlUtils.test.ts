@@ -218,3 +218,31 @@ describe('constants', () => {
     expect(ORDER_PATHS).toContain('/your-orders/orders');
   });
 });
+
+describe('digital order URLs', () => {
+  it('preserves the digital orderFilter when building the base URL', async () => {
+    const { getOrderHistoryBaseUrl } = await import('../src/utils/urlUtils');
+    expect(
+      getOrderHistoryBaseUrl(
+        'https://www.amazon.de/your-orders/orders?orderFilter=digital&timeFilter=year-2026'
+      )
+    ).toBe('https://www.amazon.de/your-orders/orders?orderFilter=digital');
+  });
+
+  it('detects the Digital Orders tab', async () => {
+    const { isDigitalOrderPage } = await import('../src/utils/urlUtils');
+    expect(isDigitalOrderPage('https://www.amazon.de/your-orders/orders?orderFilter=digital')).toBe(
+      true
+    );
+    expect(isDigitalOrderPage('https://www.amazon.de/your-orders/orders')).toBe(false);
+  });
+
+  it('extracts Prime Video digital IDs', async () => {
+    const { extractDigitalIdFromUrl } = await import('../src/utils/urlUtils');
+    expect(
+      extractDigitalIdFromUrl(
+        'https://www.amazon.de/gp/video/detail/amzn1.dv.gti.12345678-1234-1234-1234-123456789abc'
+      )
+    ).toBe('amzn1.dv.gti.12345678-1234-1234-1234-123456789abc');
+  });
+});

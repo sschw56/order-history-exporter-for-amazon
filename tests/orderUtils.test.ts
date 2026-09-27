@@ -3,6 +3,7 @@ import {
   isAdvertisementOrder,
   extractOrderId,
   extractOrderIdFromUrl,
+  isDigitalOrderIdentity,
 } from '../src/utils/orderUtils';
 import type { Order, OrderItem } from '../src/types';
 
@@ -134,5 +135,45 @@ describe('extractOrderIdFromUrl', () => {
 
   it('should return null when no order ID in URL', () => {
     expect(extractOrderIdFromUrl('https://amazon.de/your-orders')).toBeNull();
+  });
+});
+
+describe('digital order IDs', () => {
+  it('extracts Amazon digital order IDs from text', async () => {
+    const { extractOrderId } = await import('../src/utils/orderUtils');
+    expect(extractOrderId('Order D01-1234567-1234567')).toBe('D01-1234567-1234567');
+  });
+
+  it('extracts Amazon digital order IDs from URLs', async () => {
+    const { extractOrderIdFromUrl } = await import('../src/utils/orderUtils');
+    expect(
+      extractOrderIdFromUrl(
+        'https://www.amazon.de/your-orders/order-details?orderID=D01-1234567-1234567'
+      )
+    ).toBe('D01-1234567-1234567');
+  });
+});
+
+describe('isDigitalOrderIdentity', () => {
+  it('recognises D01 Amazon digital order IDs', () => {
+    expect(isDigitalOrderIdentity('D01-1751410-2821464', '')).toBe(true);
+  });
+
+  it('recognises digital order detail references', () => {
+    expect(
+      isDigitalOrderIdentity(
+        '',
+        'https://www.amazon.de/gp/css/order-details?orderID=D01-1751410-2821464&ref=ppx_yo2ov_dt_b_fed_digi_order_details_318'
+      )
+    ).toBe(true);
+  });
+
+  it('keeps normal retail orders physical', () => {
+    expect(
+      isDigitalOrderIdentity(
+        '306-1145935-7134768',
+        'https://www.amazon.de/your-orders/order-details?orderID=306-1145935-7134768'
+      )
+    ).toBe(false);
   });
 });

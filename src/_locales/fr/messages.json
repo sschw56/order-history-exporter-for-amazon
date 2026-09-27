@@ -242,5 +242,23 @@
   "csvHeaderRecipientCountry": {
     "message": "Pays du destinataire",
     "description": "CSV header for the shipping recipient's country"
+  },
+  "csvHeaderOrderType": {
+    "message": "Type de commande"
+  },
+  "csvHeaderTransactionDates": {
+    "message": "Dates des transactions"
+  },
+  "csvHeaderTransactionAmounts": {
+    "message": "Montants des transactions"
+  },
+  "csvHeaderTransactionCurrencies": {
+    "message": "Devises des transactions"
+  },
+  "csvHeaderItemDigitalId": {
+    "message": "ID numérique"
+  },
+  "csvHeaderItemContentType": {
+    "message": "Type de contenu"
   }
 }

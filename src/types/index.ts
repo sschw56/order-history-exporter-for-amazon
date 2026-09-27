@@ -5,10 +5,18 @@
 export interface OrderItem {
   title: string;
   asin: string;
+  digitalId?: string;
   quantity: number;
   price: number;
   discount: number;
   itemUrl: string;
+  contentType?: string;
+}
+
+export interface Transaction {
+  date: string;
+  amount: number;
+  currency: string;
 }
 
 export interface Order {
@@ -25,6 +33,8 @@ export interface Order {
   recipientStreet: string;
   recipientCityPostal: string;
   recipientCountry: string;
+  orderType?: 'physical' | 'digital';
+  transactions?: Transaction[];
 }
 
 export interface Promotion {

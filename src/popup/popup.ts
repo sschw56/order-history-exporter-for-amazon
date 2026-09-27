@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Set default date values
   const today = new Date();
-  const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+  //const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
   endDateInput.value = today.toISOString().split('T')[0] || '';
-  startDateInput.value = oneYearAgo.toISOString().split('T')[0] || '';
+  startDateInput.value = today.toISOString().split('T')[0] || '';
 
   // Check if we're on an Amazon order history page
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
