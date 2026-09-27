@@ -49,22 +49,15 @@ export function extractOrderId(text: string): string | null {
   return orderIdMatch?.[0] || null;
 }
 
+/** Check whether an Amazon order ID belongs to a digital order. */
+export function isDigitalOrderId(orderId: string): boolean {
+  return /^D\d{2}-\d{7}-\d{7}$/i.test(orderId.trim());
+}
+
 /**
  * Extract order ID from URL
  */
 export function extractOrderIdFromUrl(url: string): string | null {
   const urlMatch = url.match(/orderI[Dd]=((?:D\d{2}-|\d{3}-)\d{7}-\d{7})/i);
   return urlMatch?.[1] || null;
-}
-
-/**
- * Check whether an individual order is a digital Amazon order.
- *
- * Digital orders can appear inside the regular order-history view, so page-level
- * detection alone is not sufficient. Amazon Germany currently uses Dxx order IDs
- * and digi_order_details references for digital purchases such as Prime Video.
- */
-export function isDigitalOrderIdentity(orderId: string, detailsUrl: string): boolean {
-  if (/^D\d{2}-\d{7}-\d{7}$/i.test(orderId)) return true;
-  return /digi_order_details/i.test(detailsUrl);
 }

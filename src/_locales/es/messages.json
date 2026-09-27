@@ -260,5 +260,11 @@
   },
   "csvHeaderItemContentType": {
     "message": "Tipo de contenido"
+  },
+  "csvHeaderTransactionPaymentMethods": {
+    "message": "Métodos de pago"
+  },
+  "csvHeaderTransactionCardLast4": {
+    "message": "Últimos 4 dígitos de la tarjeta"
   }
 }

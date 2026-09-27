@@ -21,6 +21,14 @@ export function formatTransactionCurrenciesForCSV(transactions: Transaction[] = 
   return transactions.map((transaction) => transaction.currency).join(' | ');
 }
 
+export function formatTransactionPaymentMethodsForCSV(transactions: Transaction[] = []): string {
+  return transactions.map((transaction) => transaction.paymentMethod || '').join(' | ');
+}
+
+export function formatTransactionCardLast4ForCSV(transactions: Transaction[] = []): string {
+  return transactions.map((transaction) => transaction.cardLast4 || '').join(' | ');
+}
+
 /**
  * Amazon's payment page renders charges with a leading minus sign and credits /
  * refunds without one. For Finance Import we normalize from the account holder's

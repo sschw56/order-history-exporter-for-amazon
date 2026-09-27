@@ -296,7 +296,13 @@ describe('Finance enrichment columns', () => {
       recipientCountry: '',
       orderType: 'digital',
       transactions: [
-        { date: '2026-09-21', amount: 9.99, currency: 'EUR' },
+        {
+          date: '2026-09-21',
+          amount: 9.99,
+          currency: 'EUR',
+          paymentMethod: 'Visa',
+          cardLast4: '4242',
+        },
         { date: '2026-09-22', amount: -2.0, currency: 'EUR' },
       ],
     };

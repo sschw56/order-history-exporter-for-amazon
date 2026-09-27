@@ -3,7 +3,7 @@ import {
   isAdvertisementOrder,
   extractOrderId,
   extractOrderIdFromUrl,
-  isDigitalOrderIdentity,
+  isDigitalOrderId,
 } from '../src/utils/orderUtils';
 import type { Order, OrderItem } from '../src/types';
 
@@ -154,26 +154,9 @@ describe('digital order IDs', () => {
   });
 });
 
-describe('isDigitalOrderIdentity', () => {
-  it('recognises D01 Amazon digital order IDs', () => {
-    expect(isDigitalOrderIdentity('D01-1751410-2821464', '')).toBe(true);
-  });
-
-  it('recognises digital order detail references', () => {
-    expect(
-      isDigitalOrderIdentity(
-        '',
-        'https://www.amazon.de/gp/css/order-details?orderID=D01-1751410-2821464&ref=ppx_yo2ov_dt_b_fed_digi_order_details_318'
-      )
-    ).toBe(true);
-  });
-
-  it('keeps normal retail orders physical', () => {
-    expect(
-      isDigitalOrderIdentity(
-        '306-1145935-7134768',
-        'https://www.amazon.de/your-orders/order-details?orderID=306-1145935-7134768'
-      )
-    ).toBe(false);
+describe('isDigitalOrderId', () => {
+  it('recognizes Dxx digital-order IDs', () => {
+    expect(isDigitalOrderId('D01-1751410-2821464')).toBe(true);
+    expect(isDigitalOrderId('306-6464060-0334738')).toBe(false);
   });
 });

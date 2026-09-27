@@ -6,6 +6,7 @@ import {
   extractAsinFromUrl,
   AMAZON_DOMAINS,
   ORDER_PATHS,
+  isDigitalOrderDetailsUrl,
 } from '../src/utils/urlUtils';
 
 describe('buildOrderPageUrl', () => {
@@ -244,5 +245,20 @@ describe('digital order URLs', () => {
         'https://www.amazon.de/gp/video/detail/amzn1.dv.gti.12345678-1234-1234-1234-123456789abc'
       )
     ).toBe('amzn1.dv.gti.12345678-1234-1234-1234-123456789abc');
+  });
+});
+
+describe('isDigitalOrderDetailsUrl', () => {
+  it('recognizes German digital-order detail URLs', () => {
+    expect(
+      isDigitalOrderDetailsUrl(
+        'https://www.amazon.de/gp/css/order-details?orderID=D01-1751410-2821464&ref=ppx_yo2ov_dt_b_fed_digi_order_details_318'
+      )
+    ).toBe(true);
+    expect(
+      isDigitalOrderDetailsUrl(
+        'https://www.amazon.de/your-orders/order-details?orderID=306-6464060-0334738'
+      )
+    ).toBe(false);
   });
 });

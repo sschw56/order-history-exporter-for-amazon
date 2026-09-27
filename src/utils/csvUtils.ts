@@ -7,6 +7,8 @@ import {
   formatTransactionAmountsForCSV,
   formatTransactionCurrenciesForCSV,
   formatTransactionDatesForCSV,
+  formatTransactionPaymentMethodsForCSV,
+  formatTransactionCardLast4ForCSV,
 } from './transactionUtils';
 
 /**
@@ -48,6 +50,8 @@ export function convertOrdersToCSV(
     getHeader('csvHeaderTransactionDates'),
     getHeader('csvHeaderTransactionAmounts'),
     getHeader('csvHeaderTransactionCurrencies'),
+    getHeader('csvHeaderTransactionPaymentMethods'),
+    getHeader('csvHeaderTransactionCardLast4'),
     getHeader('csvHeaderTotalSavings'),
     getHeader('csvHeaderStatus'),
     getHeader('csvHeaderItemTitle'),
@@ -73,6 +77,8 @@ export function convertOrdersToCSV(
     const transactionDates = formatTransactionDatesForCSV(order.transactions);
     const transactionAmounts = formatTransactionAmountsForCSV(order.transactions);
     const transactionCurrencies = formatTransactionCurrenciesForCSV(order.transactions);
+    const transactionPaymentMethods = formatTransactionPaymentMethodsForCSV(order.transactions);
+    const transactionCardLast4 = formatTransactionCardLast4ForCSV(order.transactions);
 
     const orderColumns = [
       escapeCSVValue(order.orderId),
@@ -83,6 +89,8 @@ export function convertOrdersToCSV(
       escapeCSVValue(transactionDates),
       escapeCSVValue(transactionAmounts),
       escapeCSVValue(transactionCurrencies),
+      escapeCSVValue(transactionPaymentMethods),
+      escapeCSVValue(transactionCardLast4),
     ];
 
     if (order.items.length === 0) {

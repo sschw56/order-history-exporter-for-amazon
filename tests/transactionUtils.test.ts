@@ -4,6 +4,8 @@ import {
   formatTransactionAmountsForCSV,
   formatTransactionCurrenciesForCSV,
   formatTransactionDatesForCSV,
+  formatTransactionPaymentMethodsForCSV,
+  formatTransactionCardLast4ForCSV,
   parseCPETransactionAmount,
 } from '../src/utils/transactionUtils';
 
@@ -36,5 +38,19 @@ describe('transactionUtils', () => {
     expect(formatTransactionDatesForCSV(transactions)).toBe('2026-09-20 | 2026-09-20');
     expect(formatTransactionAmountsForCSV(transactions)).toBe('19.99 | 19.99');
     expect(formatTransactionCurrenciesForCSV(transactions)).toBe('EUR | EUR');
+  });
+  it('formats payment methods and card suffixes in transaction order', () => {
+    const transactions = [
+      {
+        date: '2026-09-20',
+        amount: 19.99,
+        currency: 'EUR',
+        paymentMethod: 'Visa',
+        cardLast4: '4242',
+      },
+      { date: '2026-09-21', amount: 5.0, currency: 'EUR', paymentMethod: 'PayPal' },
+    ];
+    expect(formatTransactionPaymentMethodsForCSV(transactions)).toBe('Visa | PayPal');
+    expect(formatTransactionCardLast4ForCSV(transactions)).toBe('4242 | ');
   });
 });

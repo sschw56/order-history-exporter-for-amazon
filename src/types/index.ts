@@ -17,6 +17,8 @@ export interface Transaction {
   date: string;
   amount: number;
   currency: string;
+  paymentMethod?: string;
+  cardLast4?: string;
 }
 
 export interface Order {

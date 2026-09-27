@@ -271,3 +271,7 @@ and exported orders are tagged with `orderType: "digital"`. Digital items can in
 For the first implementation stage, retail and digital histories are deliberately
 kept as separate export runs. This makes it possible to validate Amazon.de's current
 markup before combining both sources into one Finance Import workflow.
+
+### Finance fork: payment metadata
+
+For Finance Import, Amazon CPE payment transactions are enriched with the payment method and, when Amazon exposes it, the last four card digits. Payment metadata is attached to the individual transaction in JSON and exported as aligned transaction columns in CSV. The transaction page is the preferred source; order details are used only as a fallback.

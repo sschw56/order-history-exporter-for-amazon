@@ -144,6 +144,13 @@ export function isDigitalOrderPage(url: string): boolean {
   }
 }
 
+/** Check whether a details URL points to Amazon's digital-order details view. */
+export function isDigitalOrderDetailsUrl(url: string): boolean {
+  return (
+    /(?:digi_order_details|\/gp\/css\/order-details)/i.test(url) && /orderI[Dd]=D\d{2}-/i.test(url)
+  );
+}
+
 /** Extract a stable digital-content identifier from common Amazon URLs. */
 export function extractDigitalIdFromUrl(url: string): string | null {
   const videoMatch = url.match(/\/gp\/video\/detail\/(amzn1\.[^?/#]+)/i);

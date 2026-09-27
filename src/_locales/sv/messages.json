@@ -260,5 +260,11 @@
   },
   "csvHeaderItemContentType": {
     "message": "Innehållstyp"
+  },
+  "csvHeaderTransactionPaymentMethods": {
+    "message": "Betalningsmetoder"
+  },
+  "csvHeaderTransactionCardLast4": {
+    "message": "Kortets sista 4 siffror"
   }
 }

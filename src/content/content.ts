@@ -21,11 +21,12 @@ import {
   extractAsinFromUrl,
   extractDigitalIdFromUrl,
   isDigitalOrderPage,
+  isDigitalOrderDetailsUrl,
+  isDigitalOrderId,
   isAdvertisementOrder,
   convertOrdersToCSV,
   extractOrderId,
   extractOrderIdFromUrl,
-  isDigitalOrderIdentity,
   extractPriceFromText,
   parsePrice,
   CURRENCY_TOKEN,
@@ -33,6 +34,8 @@ import {
   parseOrderStatus,
   buildTransactionUrl,
   parseCPETransactionAmount,
+  parsePaymentDetailsFromText,
+  parsePaymentDetailsFromDocument,
 } from '../utils';
 import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
 
@@ -607,9 +610,13 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
       }
     }
 
-    // Digital orders can also appear in the regular order-history feed.
-    // Detect them per order instead of relying only on the current page URL.
-    if (isDigitalOrderIdentity(order.orderId, order.detailsUrl)) {
+    // Digital orders can appear inside the regular order-history view. Detect
+    // them per order instead of relying only on the current page filter.
+    if (
+      isDigitalOrderPage(window.location.href) ||
+      isDigitalOrderId(order.orderId) ||
+      isDigitalOrderDetailsUrl(order.detailsUrl)
+    ) {
       order.orderType = 'digital';
     }
 
@@ -933,6 +940,8 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
       const order = orders[i];
       if (!order) continue;
 
+      let fallbackPaymentDetails: { paymentMethod?: string; cardLast4?: string } = {};
+
       try {
         updateProgress(
           80 + (i / Math.max(orders.length, 1)) * 10,
@@ -944,6 +953,7 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
           if (response.ok) {
             const html = await response.text();
             const doc = new DOMParser().parseFromString(html, 'text/html');
+            fallbackPaymentDetails = parsePaymentDetailsFromDocument(doc);
 
             if (order.orderType === 'digital') {
               parseDigitalOrderPricesFromDetails(order, doc);
@@ -972,7 +982,11 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
           if (txResponse.ok) {
             const txHtml = await txResponse.text();
             const txDoc = new DOMParser().parseFromString(txHtml, 'text/html');
-            order.transactions = parseTransactionsFromCPEDoc(txDoc);
+            order.transactions = parseTransactionsFromCPEDoc(txDoc).map((transaction) => ({
+              ...transaction,
+              paymentMethod: transaction.paymentMethod ?? fallbackPaymentDetails.paymentMethod,
+              cardLast4: transaction.cardLast4 ?? fallbackPaymentDetails.cardLast4,
+            }));
           } else {
             order.transactions = [];
             console.warn(
@@ -1018,10 +1032,22 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
         // Amazon can render the same amount more than once inside one transaction
         // group. Collapse only those duplicates. Identical charges in separate groups
         // are intentionally preserved (e.g. two equal partial shipments on one day).
-        const key = `${parsed.amount}:${parsed.currency}`;
+        const transactionContainer =
+          amountEl.closest('.apx-transactions-line-item-component-container') || group;
+        let paymentDetails = parsePaymentDetailsFromText(transactionContainer.textContent || '');
+        if (!paymentDetails.paymentMethod && !paymentDetails.cardLast4) {
+          paymentDetails = parsePaymentDetailsFromText(group.textContent || '');
+        }
+
+        const key = `${parsed.amount}:${parsed.currency}:${paymentDetails.paymentMethod || ''}:${paymentDetails.cardLast4 || ''}`;
         if (seenWithinGroup.has(key)) continue;
         seenWithinGroup.add(key);
-        transactions.push({ date, amount: parsed.amount, currency: parsed.currency });
+        transactions.push({
+          date,
+          amount: parsed.amount,
+          currency: parsed.currency,
+          ...paymentDetails,
+        });
       }
     }
 
