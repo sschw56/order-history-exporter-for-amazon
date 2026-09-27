@@ -1,7 +1,6 @@
 {
   "extensionName": {
-    "message": "Order History Exporter for Amazon",
-    "description": "The name of the extension"
+    "message": "Amazon Order Exporter (Finance Import)"
   },
   "extensionDescription": {
     "message": "Export your Amazon order history as JSON or CSV files",
@@ -266,5 +265,107 @@
   },
   "csvHeaderTransactionCardLast4": {
     "message": "Card Last 4"
+  },
+  "financeSettingsTitle": {
+    "message": "Finance Import"
+  },
+  "financeUrlLabel": {
+    "message": "Finance Import URL"
+  },
+  "financeTokenLabel": {
+    "message": "API token"
+  },
+  "financeDeviceNameLabel": {
+    "message": "Device name (optional)"
+  },
+  "financeSaveSettings": {
+    "message": "Save"
+  },
+  "financeTestConnection": {
+    "message": "Test connection"
+  },
+  "sendToFinance": {
+    "message": "Send to Finance Import"
+  },
+  "financeSettingsMissing": {
+    "message": "Finance Import URL and API token are required."
+  },
+  "financeSettingsSaved": {
+    "message": "Finance Import settings saved."
+  },
+  "financeTesting": {
+    "message": "Testing connection…"
+  },
+  "financeConnectionOk": {
+    "message": "Connection to Finance Import is working."
+  },
+  "financeConnectionFailed": {
+    "message": "Finance Import connection failed: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "HTTP 401"
+      }
+    }
+  },
+  "financeSendStartedMessage": {
+    "message": "Amazon data is being prepared for Finance Import…"
+  },
+  "financeSendStartedStatus": {
+    "message": "Transfer to Finance Import started. Keep the Amazon tab open."
+  },
+  "financeSendInitiatedStatus": {
+    "message": "Transfer is running. Amazon will navigate through the selected orders."
+  },
+  "financeSendComplete": {
+    "message": "Done! $COUNT$ orders sent to Finance Import as batch #$BATCH$.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      },
+      "batch": {
+        "content": "$2",
+        "example": "17"
+      }
+    }
+  },
+  "financeSendDuplicate": {
+    "message": "Done. These $COUNT$ orders already exist in Finance Import as batch #$BATCH$.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      },
+      "batch": {
+        "content": "$2",
+        "example": "17"
+      }
+    }
+  },
+  "financeSendFailed": {
+    "message": "Transfer to Finance Import failed."
+  },
+  "financeLastSendSuccess": {
+    "message": "Last transfer: batch #$BATCH$ with $COUNT$ orders.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      },
+      "batch": {
+        "content": "$2",
+        "example": "17"
+      }
+    }
+  },
+  "financeLastSendFailed": {
+    "message": "Last transfer failed: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "HTTP 401"
+      }
+    }
   }
 }

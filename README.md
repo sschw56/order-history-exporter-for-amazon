@@ -275,3 +275,13 @@ markup before combining both sources into one Finance Import workflow.
 ### Finance fork: payment metadata
 
 For Finance Import, Amazon CPE payment transactions are enriched with the payment method and, when Amazon exposes it, the last four card digits. Payment metadata is attached to the individual transaction in JSON and exported as aligned transaction columns in CSV. The transaction page is the preferred source; order details are used only as a fallback.
+
+## Finance Import integration (private fork)
+
+This fork can send the scraped Amazon JSON directly to the private Finance Import instance at `https://finance.swrz-home.de`.
+
+The Firefox popup stores the Finance Import base URL, bearer token and an optional device name in `browser.storage.local`. Each Firefox profile gets its own installation ID, so the same signed XPI can later be installed on multiple Macs. The server accepts the same bearer token from all configured installations and records the device name with the received batch.
+
+The direct transfer uses the same order collection flow as the file export, including digital orders and Amazon payment transactions. The server persists only finance-relevant fields; shipping addresses, item URLs, ASINs and digital IDs are not kept in the Finance Import inbox.
+
+The Firefox manifest uses the private extension ID `finance-amazon-exporter@swrz-home.de` and has host permission for `https://finance.swrz-home.de/*`.

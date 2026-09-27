@@ -3,7 +3,7 @@
  */
 
 /** Key for the export state in sessionStorage */
-export const STORAGE_KEY = 'amazonExporter';
+export const STORAGE_KEY = 'financeAmazonExporterStateV1';
 
 /** Key for the stop-requested flag in browser.storage.session */
 export const STOP_FLAG_KEY = 'amazonExporterStopRequested';

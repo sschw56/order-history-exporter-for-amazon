@@ -44,8 +44,11 @@ export interface Promotion {
   amount: number;
 }
 
+export type ExportDestination = 'download' | 'finance';
+
 export interface ExportOptions {
   format: 'json' | 'csv';
+  destination?: ExportDestination;
   startDate: string | null;
   endDate: string | null;
   exportAll: boolean;
@@ -54,6 +57,7 @@ export interface ExportOptions {
 export interface ExportState {
   inProgress: boolean;
   format: 'json' | 'csv';
+  destination: ExportDestination;
   startDate: string | null;
   endDate: string | null;
   exportAll: boolean;
@@ -80,4 +84,28 @@ export interface MessagePayload {
 export interface ProgressData {
   percent: number;
   message: string;
+}
+
+export interface FinanceImportSettings {
+  baseUrl: string;
+  token: string;
+  deviceName: string;
+  instanceId: string;
+}
+
+export interface FinanceImportSendData {
+  orders: Order[];
+  exportedAt: string;
+  amazonHost: string;
+}
+
+export interface FinanceImportResponse {
+  success: boolean;
+  batchId?: number;
+  duplicate?: boolean;
+  orderCount?: number;
+  minOrderDate?: string | null;
+  maxOrderDate?: string | null;
+  error?: string;
+  status?: number;
 }

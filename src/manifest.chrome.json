@@ -25,7 +25,8 @@
     "*://*.amazon.com.br/*",
     "*://*.amazon.com.mx/*",
     "*://*.amazon.com.be/*",
-    "*://*.amazon.ae/*"
+    "*://*.amazon.ae/*",
+    "https://finance.swrz-home.de/*"
   ],
   "action": {
     "default_icon": {

@@ -162,6 +162,7 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
     stopRequested = false;
 
     const { format, startDate, endDate, exportAll } = options;
+    const destination = options.destination || 'download';
 
     // Get available years
     const years = getAvailableYears();
@@ -183,6 +184,7 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
     const state: ExportState = {
       inProgress: true,
       format: format,
+      destination: destination,
       startDate: startDate,
       endDate: endDate,
       exportAll: exportAll,
@@ -319,7 +321,47 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
 
     updateProgress(95, getMessage('generatingFile'));
 
-    // Generate file
+    if (state.destination === 'finance') {
+      const response = (await browser.runtime.sendMessage({
+        action: 'sendToFinanceImport',
+        data: {
+          orders: state.collectedOrders,
+          exportedAt: new Date().toISOString(),
+          amazonHost: window.location.hostname,
+        },
+      })) as {
+        success: boolean;
+        batchId?: number;
+        duplicate?: boolean;
+        error?: string;
+      };
+
+      if (!response.success) {
+        const message = response.error || getMessage('financeSendFailed');
+        browser.runtime
+          .sendMessage({
+            action: 'financeSendFailed',
+            data: { message },
+          })
+          .catch(() => {
+            console.debug('[Amazon Exporter] Popup not reachable for Finance Import error');
+          });
+        clearExportState();
+        return;
+      }
+
+      updateProgress(
+        100,
+        getMessage(response.duplicate ? 'financeSendDuplicate' : 'financeSendComplete', [
+          String(state.collectedOrders.length),
+          String(response.batchId || ''),
+        ])
+      );
+      clearExportState();
+      return;
+    }
+
+    // Generate download file.
     let fileContent: string;
     let fileName: string;
     let mimeType: string;
@@ -335,7 +377,6 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
       mimeType = 'text/csv';
     }
 
-    // Download via background script
     await browser.runtime.sendMessage({
       action: 'downloadFile',
       data: {
@@ -346,8 +387,6 @@ import { STORAGE_KEY, STOP_FLAG_KEY } from '../constants';
     });
 
     updateProgress(100, getMessage('exportComplete', [String(state.collectedOrders.length)]));
-
-    // Clear state
     clearExportState();
   }
 

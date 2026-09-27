@@ -245,3 +245,99 @@ footer a:hover {
 #settings-section {
   transition: opacity 0.2s ease;
 }
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-finance {
+  width: 100%;
+  background: #2f6f4e;
+  border: 1px solid #25583e;
+  color: #fff;
+}
+
+.btn-finance:hover:not(:disabled) {
+  background: #285f43;
+}
+
+.btn-finance:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.finance-settings details {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.finance-settings summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.finance-settings-body {
+  padding: 0 12px 12px;
+}
+
+.finance-settings input[type='url'],
+.finance-settings input[type='password'],
+.finance-settings input[type='text'] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.finance-settings input:focus {
+  outline: none;
+  border-color: #ff9900;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 9px 10px;
+  background: #fff;
+  border: 1px solid #bbb;
+  color: #333;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f1f1f1;
+}
+
+.settings-status {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.settings-status.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.settings-status.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.settings-status.info {
+  background: #d1ecf1;
+  color: #0c5460;
+}
